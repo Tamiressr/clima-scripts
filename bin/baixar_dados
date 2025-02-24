@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# URL base do servidor
+BASE_URL="http://clima-dods.ictp.it/regcm4/HadGEM2/RCP45"
+
+DATA_INICIO=$1
+VARIAVEL=$2
+
+# Calcula a data final como o primeiro dia do terceiro mês após a data inicial
+DATA_FIM=$(date -d "$DATA_INICIO +3 months" +"%Y%m0100") 2>/dev/null
+
+
+ if [[ $VARIAVEL == 'ps' ]]
+ then
+   DATA_FIM=$(date -d "$DATA_INICIO +12 months" +"%Y%m0100") 2>/dev/null
+ fi
+    
+# Criar diretório para salvar os arquivos
+mkdir -p outputs/$VARIAVEL
+
+# Monta o nome do arquivo com o padrão correto
+FILE_NAME="${VARIAVEL}_6hrLev_HadGEM2-ES_rcp45_r1i1p1_${DATA_INICIO}06-${DATA_FIM}.nc"
+
+# Monta a URL completa
+FILE_URL="$BASE_URL/$VARIAVEL/$FILE_NAME"
+
+# Baixa o arquivo usando wget
+echo "Baixando: $FILE_URL"
+wget -nc -P outputs/$VARIAVEL "$FILE_URL"
+
+echo "Download concluído! O arquivo está em outputs/$VARIAVEL/"

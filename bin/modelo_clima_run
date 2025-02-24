@@ -1,0 +1,16 @@
+# pasta regcm4 
+echo "Iniciando processos de execução de modelo de clima REGCM47"
+DATA_DADOS=$1
+if /home/aesa-logic/regcm/regcm47/climate4.in  $DATA_DADOS
+ then
+ echo "Executando condições de contorno"
+  echo "TERRENO"
+  /home/aesa-logic/regcm/regcm47/bin/terrain_ climate4.in $DATA_DADOS
+ # echo "SST"
+  #/home/aesa-logic/regcm/regcm47/bin/sst_ climate4.in $DATA_DADOS
+  #echo "ICBC"
+  #home/aesa-logic/regcm/regcm47/bin/icbc_ climate4.in $DATA_DADOS
+fi
+
+echo "Executando modelo de clima REGCM47"
+#home/aesa-logic/regcm/biblioteca/MPI/bin/mpirun -np 50 ./bin/regcmMPI_ climate4.in $DATA_DADOS

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+echo $SHELL
+echo $BASH_ENV
+/home/aesa-logic/teste/bin/download_and_run
