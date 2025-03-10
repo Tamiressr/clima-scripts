@@ -1,31 +1,104 @@
 #!/usr/bin/env bash
 
-# URL base do servidor
+# URL base do servidor para baixar as simulações
 BASE_URL="http://clima-dods.ictp.it/regcm4/HadGEM2/RCP45"
 
-DATA_INICIO=$1
-VARIAVEL=$2
+# Diretório e arquivo de log
+LOG_DIR="logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/download_$(date +%Y%m%d_%H%M%S).log"
 
-# Calcula a data final como o primeiro dia do terceiro mês após a data inicial
-DATA_FIM=$(date -d "$DATA_INICIO +3 months" +"%Y%m0100") 2>/dev/null
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+# Lista de variáveis e meses iniciais dos arquivos
+variaveis=("hus" "ta" "ua" "va" "ps")
+MESES_DISPONIVEIS=(3 6 9 12)
+
+MES_ATUAL=$(date +%m)
+MES_CALCULADO=$((10#$MES_ATUAL + 1))  # Adiciona 1 ao mês atual para pegar a simulação do próximo mês
+
+# Função para encontrar o mês de referência
+obter_mes_referencia() {
+    local mes=$1
+    for ref_mes in "${MESES_DISPONIVEIS[@]}"; do
+        if (( mes <= ref_mes + 2 )); then
+            echo "$ref_mes"
+            return
+        fi
+    done
+    echo 9  # Se o mês for entre 9 e 12, retorna 9
+}
+
+# Obtém o mês correto para baixar
+MES_REFERENCIA=$(obter_mes_referencia "$MES_CALCULADO")
+
+# Obtém o ano atual
+ANO1=$(date +%Y)
+
+# Calcula o mês final (mês referência + 3)
+MES_FINAL=$((MES_REFERENCIA + 3))
+
+# Ajusta o ano se o mês final ultrapassar dezembro (12)
+if (( MES_FINAL > 12 )); then
+    MES_FINAL=$((MES_FINAL - 12))  # Corrige para um mês válido
+    ANO2=$((ANO1 + 1))  # Avança para o próximo ano
+else
+    ANO2=$ANO1  # Mantém o mesmo ano
+fi
+# Ajusta o ano se o mês final ultrapassar dezembro (12)
+if (( MES_REFERENCIA <=3 )); then
+echo "aqui" 
+    MES_REFERENCIA=12
+    MES_FINAL=$((MES_ATUAL ))  # Corrige para um mês válido
+    ANO1=$((ANO1 - 1))
+    ANO2=$((ANO1 + 1))  # Avança para o próximo ano
+#else
+    #ANO2=$ANO1  # Mantém o mesmo ano
+fi
+
+# Formata os meses corretamente (exemplo: "03" em vez de "3")
+ANO1MES1="${ANO1}$(printf "%02d" "$MES_REFERENCIA")"
+ANO2MES2="${ANO2}$(printf "%02d" "$MES_FINAL")"
+
+# Anos para variável pressão
+PS_ANO1=$(date +%Y --date="+1 year")
+PS_ANO2=$(date +%Y --date="+2 year")
+PS_ANO11=$(date +%Y --date="-1 year")
+PS_ANO22=$(date +%Y)
 
 
- if [[ $VARIAVEL == 'ps' ]]
- then
-   DATA_FIM=$(date -d "$DATA_INICIO +12 months" +"%Y%m0100") 2>/dev/null
- fi
-    
-# Criar diretório para salvar os arquivos
-mkdir -p outputs/$VARIAVEL
 
-# Monta o nome do arquivo com o padrão correto
-FILE_NAME="${VARIAVEL}_6hrLev_HadGEM2-ES_rcp45_r1i1p1_${DATA_INICIO}06-${DATA_FIM}.nc"
+log "Iniciando o script de download..."
+log "Mês calculado: $MES_CALCULADO"
+log "Mês referência encontrado: $MES_REFERENCIA"
+log "Mês final calculado: $MES_FINAL ($ANO2)"
 
-# Monta a URL completa
-FILE_URL="$BASE_URL/$VARIAVEL/$FILE_NAME"
+for variavel in "${variaveis[@]}"; do
+    if [ "$variavel" == "ps" ]; then
+        if [ "$MES_REFERENCIA" -eq 11 ]; then
+            FILE_NAME="${variavel}_6hrLev_HadGEM2-ES_rcp45_r1i1p1_${PS_ANO1}120106-${PS_ANO2}120100.nc"
+        else
+            FILE_NAME="${variavel}_6hrLev_HadGEM2-ES_rcp45_r1i1p1_${PS_ANO11}120106-${PS_ANO22}120100.nc"
+        fi
+    else
+        FILE_NAME="${variavel}_6hrLev_HadGEM2-ES_rcp45_r1i1p1_${ANO1MES1}0106-${ANO2MES2}0100.nc"
+    fi
 
-# Baixa o arquivo usando wget
-echo "Baixando: $FILE_URL"
-wget -nc -P outputs/$VARIAVEL "$FILE_URL"
+    echo "$FILE_NAME"
 
-echo "Download concluído! O arquivo está em outputs/$VARIAVEL/"
+    if [ ! -d "HadGEM2/RCP45/$variavel" ]; then
+        mkdir -p "HadGEM2/RCP45/$variavel"
+        log "Diretório criado: HadGEM2/RCP45/$variavel"
+    fi
+
+    FILE_URL="$BASE_URL/$variavel/$FILE_NAME"
+
+    if [ ! -f "HadGEM2/RCP45/$variavel/$FILE_NAME" ]; then
+        log "Baixando arquivo da variável: $variavel , $FILE_URL"
+        wget -nc -P "HadGEM2/RCP45/$variavel" "$FILE_URL"
+        log "Download concluído! O arquivo está em HadGEM2/RCP45/$variavel/"
+    fi
+done
+
+

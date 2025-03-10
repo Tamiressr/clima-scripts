@@ -5,19 +5,12 @@ export ENDPOINT_EXECUCAO=https://seira.aesa.logap.com.br/api/execucao
 DATA_DADOS=$(date -u +"%Y-%m-%d")
 #EXECUCAO_UUID=$(/home/aesa-logic/wrf/bin/notificar_api INICIALIZAR $DATA_DADOS)
 
-# Solicita ao usuário a variável desejada
-read -p "Informe a variável (hus, ps, ta, ua, va): " VARIAVEL
-
-# Solicita a data de início
-read -p "Informe a data de início (YYYYMMDD): " DATA_INICIO
-
 echo "Executando modelo de clima REGCM47"
 /home/aesa-logic/teste/bin/modelo_clima_run $DATA_DADOS  
 
 
 echo "Baixando RADGEM2"
-/home/aesa-logic/teste/bin/baixar_dados $DATA_INICIO $VARIAVEL 
-
+/home/aesa-logic/clima-scripts/bin/baixar_dados
 #echo "Executando o modelo"
 #if /home/aesa-logic/wrf/bin/run $EXECUCAO_UUID; then
   #echo "Gerando TS e imagens"
